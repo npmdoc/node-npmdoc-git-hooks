@@ -1,0 +1,423 @@
+<div class="apidocDiv">
+<style>
+/*csslint
+*/
+.apidocDiv {
+    background: #fff;
+    font-family: Arial, Helvetica, sans-serif;
+}
+.apidocDiv a[href] {
+    color: #33f;
+    font-weight: bold;
+    text-decoration: none;
+}
+.apidocDiv a[href]:hover {
+    text-decoration: underline;
+}
+.apidocCodeCommentSpan {
+    background: #bbf;
+    color: #000;
+    display: block;
+}
+.apidocCodeKeywordSpan {
+    color: #d00;
+    font-weight: bold;
+}
+.apidocCodePre {
+    background: #eef;
+    border: 1px solid;
+    color: #777;
+    padding: 5px;
+    white-space: pre-wrap;
+}
+.apidocFooterDiv {
+    margin-top: 20px;
+    text-align: center;
+}
+.apidocModuleLi {
+    margin-top: 10px;
+}
+.apidocSectionDiv {
+    border-top: 1px solid;
+    margin-top: 20px;
+}
+.apidocSignatureSpan {
+    color: #777;
+    font-weight: bold;
+}
+</style>
+<h1>api documentation for
+    <a
+
+    >git-hooks (v1.1.8)</a>
+</h1>
+<h4>A tool to manage project Git hooks</h4>
+<div class="apidocSectionDiv"><a
+    href="#apidoc.tableOfContents"
+    id="apidoc.tableOfContents"
+><h1>table of contents</h1></a><ol>
+
+    <li class="apidocModuleLi"><a href="#apidoc.module.git-hooks">module git-hooks</a><ol>
+
+        <li>
+
+            <a class="apidocElementLiA" href="#apidoc.element.git-hooks.install">
+            function <span class="apidocSignatureSpan">git-hooks.</span>install
+            <span class="apidocSignatureSpan">(workingDirectory)</span>
+            </a>
+
+        </li>
+
+        <li>
+
+            <a class="apidocElementLiA" href="#apidoc.element.git-hooks.run">
+            function <span class="apidocSignatureSpan">git-hooks.</span>run
+            <span class="apidocSignatureSpan">(filename, args, callback)</span>
+            </a>
+
+        </li>
+
+        <li>
+
+            <a class="apidocElementLiA" href="#apidoc.element.git-hooks.uninstall">
+            function <span class="apidocSignatureSpan">git-hooks.</span>uninstall
+            <span class="apidocSignatureSpan">(workingDirectory)</span>
+            </a>
+
+        </li>
+
+        <li>
+
+            <span class="apidocSignatureSpan">object <span class="apidocSignatureSpan">git-hooks.</span>fs_helpers</span>
+
+        </li>
+
+    </ol></li>
+
+    <li class="apidocModuleLi"><a href="#apidoc.module.git-hooks.fs_helpers">module git-hooks.fs_helpers</a><ol>
+
+        <li>
+
+            <a class="apidocElementLiA" href="#apidoc.element.git-hooks.fs_helpers.exists">
+            function <span class="apidocSignatureSpan">git-hooks.fs_helpers.</span>exists
+            <span class="apidocSignatureSpan">(path)</span>
+            </a>
+
+        </li>
+
+        <li>
+
+            <a class="apidocElementLiA" href="#apidoc.element.git-hooks.fs_helpers.isExecutable">
+            function <span class="apidocSignatureSpan">git-hooks.fs_helpers.</span>isExecutable
+            <span class="apidocSignatureSpan">(path)</span>
+            </a>
+
+        </li>
+
+        <li>
+
+            <a class="apidocElementLiA" href="#apidoc.element.git-hooks.fs_helpers.makeDir">
+            function <span class="apidocSignatureSpan">git-hooks.fs_helpers.</span>makeDir
+            <span class="apidocSignatureSpan">(dirPath)</span>
+            </a>
+
+        </li>
+
+        <li>
+
+            <a class="apidocElementLiA" href="#apidoc.element.git-hooks.fs_helpers.removeDir">
+            function <span class="apidocSignatureSpan">git-hooks.fs_helpers.</span>removeDir
+            <span class="apidocSignatureSpan">(dirPath)</span>
+            </a>
+
+        </li>
+
+    </ol></li>
+
+</ol></div>
+
+<div class="apidocSectionDiv">
+<h1><a href="#apidoc.module.git-hooks" id="apidoc.module.git-hooks">module git-hooks</a></h1>
+
+
+    <h2>
+        <a href="#apidoc.element.git-hooks.install" id="apidoc.element.git-hooks.install">
+        function <span class="apidocSignatureSpan">git-hooks.</span>install
+        <span class="apidocSignatureSpan">(workingDirectory)</span>
+        </a>
+    </h2>
+    <ul>
+    <li>description and source-code<pre class="apidocCodePre">install = function (workingDirectory) {
+    var gitPath = getClosestGitPath(workingDirectory);
+
+    if (!gitPath) {
+        throw new Error(&#x27;git-hooks must be run inside a git repository&#x27;);
+    }
+
+    var hooksPath = path.resolve(gitPath, HOOKS_DIRNAME);
+    var hooksOldPath = path.resolve(gitPath, HOOKS_OLD_DIRNAME);
+
+    if (fsHelpers.exists(hooksOldPath)) {
+        throw new Error(&#x27;git-hooks already installed&#x27;);
+    }
+
+    if (fsHelpers.exists(hooksPath)) {
+        fs.renameSync(hooksPath, hooksOldPath);
+    }
+
+    var hookTemplate = fs.readFileSync(__dirname + &#x27;/&#x27; + HOOKS_TEMPLATE_FILE_NAME);
+    var pathToGitHooks = path.relative(hooksPath, __dirname);
+    // Fix non-POSIX (Windows) separators
+    pathToGitHooks = pathToGitHooks.replace(new RegExp(path.sep.replace(/\\/g, &#x27;\\$&#x26;&#x27;), &#x27;g&#x27;), &#x27;/&#x27;);
+    var hook = util.format(hookTemplate.toString(), pathToGitHooks);
+
+    fsHelpers.makeDir(hooksPath);
+    HOOKS.forEach(function (hookName) {
+        var hookPath = path.resolve(hooksPath, hookName);
+        try {
+            fs.writeFileSync(hookPath, hook, {mode: &#x27;0777&#x27;});
+        } catch (e) {
+            // node 0.8 fallback
+            fs.writeFileSync(hookPath, hook, &#x27;utf8&#x27;);
+            fs.chmodSync(hookPath, &#x27;0777&#x27;);
+        }
+    });
+}</pre></li>
+    <li>example usage<pre class="apidocCodePre">n/a</pre></li>
+    </ul>
+
+
+
+    <h2>
+        <a href="#apidoc.element.git-hooks.run" id="apidoc.element.git-hooks.run">
+        function <span class="apidocSignatureSpan">git-hooks.</span>run
+        <span class="apidocSignatureSpan">(filename, args, callback)</span>
+        </a>
+    </h2>
+    <ul>
+    <li>description and source-code<pre class="apidocCodePre">run = function (filename, args, callback) {
+    var hookName = path.basename(filename);
+    var hooksDirname = path.resolve(path.dirname(filename), &#x27;../../.githooks&#x27;, hookName);
+
+    if (fsHelpers.exists(hooksDirname)) {
+        var list = fs.readdirSync(hooksDirname);
+        var hooks = list
+            .map(function (hookName) {
+                return path.resolve(hooksDirname, hookName);
+            })
+            .filter(function (hookPath) {
+                var isFile = fs.lstatSync(hookPath).isFile();
+                var isExecutable = fs.lstatSync(hookPath).isFile() &#x26;&#x26; fsHelpers.isExecutable(hookPath);
+
+                if (isFile &#x26;&#x26; !isExecutable) {
+                    console.warn(&#x27;[GIT-HOOKS WARNING] Non-executable file &#x27; + hookPath + &#x27; is skipped&#x27;);
+                }
+
+                return isFile &#x26;&#x26; isExecutable;
+            });
+
+        runHooks(hooks, args, callback);
+    } else {
+        callback(0);
+    }
+}</pre></li>
+    <li>example usage<pre class="apidocCodePre">...
+/**
+ * require(&#x27;git-hooks&#x27;) isn&#x27;t used to support case when node_modules is put in subdirectory.
+ * .git
+ * .githooks
+ * www
+ *     node_modules
+ */
+require(&#x27;%s/git-hooks&#x27;).<span class="apidocCodeKeywordSpan">run</span>(__filename, process.argv.slice(2), function (code
+, error) {
+    if (error) {
+        console.error(&#x27;[GIT-HOOKS ERROR] &#x27; + error.message);
+    }
+    process.exit(code);
+});
+} catch (e) {
+console.error(&#x27;[GIT-HOOKS ERROR] &#x27; + e.message);
+...</pre></li>
+    </ul>
+
+
+
+    <h2>
+        <a href="#apidoc.element.git-hooks.uninstall" id="apidoc.element.git-hooks.uninstall">
+        function <span class="apidocSignatureSpan">git-hooks.</span>uninstall
+        <span class="apidocSignatureSpan">(workingDirectory)</span>
+        </a>
+    </h2>
+    <ul>
+    <li>description and source-code<pre class="apidocCodePre">uninstall = function (workingDirectory) {
+    var gitPath = getClosestGitPath(workingDirectory);
+
+    if (!gitPath) {
+        throw new Error(&#x27;git-hooks must be run inside a git repository&#x27;);
+    }
+
+    var hooksPath = path.resolve(gitPath, HOOKS_DIRNAME);
+    var hooksOldPath = path.resolve(gitPath, HOOKS_OLD_DIRNAME);
+
+    if (!fsHelpers.exists(hooksPath)) {
+        throw new Error(&#x27;git-hooks is not installed&#x27;);
+    }
+
+    fsHelpers.removeDir(hooksPath);
+
+    if (fsHelpers.exists(hooksOldPath)) {
+        fs.renameSync(hooksOldPath, hooksPath);
+    }
+}</pre></li>
+    <li>example usage<pre class="apidocCodePre">n/a</pre></li>
+    </ul>
+
+
+
+
+</div>
+
+<div class="apidocSectionDiv">
+<h1><a href="#apidoc.module.git-hooks.fs_helpers" id="apidoc.module.git-hooks.fs_helpers">module git-hooks.fs_helpers</a></h1>
+
+
+    <h2>
+        <a href="#apidoc.element.git-hooks.fs_helpers.exists" id="apidoc.element.git-hooks.fs_helpers.exists">
+        function <span class="apidocSignatureSpan">git-hooks.fs_helpers.</span>exists
+        <span class="apidocSignatureSpan">(path)</span>
+        </a>
+    </h2>
+    <ul>
+    <li>description and source-code<pre class="apidocCodePre">exists = function (path) {
+    try {
+        fs.accessSync(path);
+        return true;
+    } catch (err) {
+        return false;
+    }
+}</pre></li>
+    <li>example usage<pre class="apidocCodePre">...
+ * Makes directory recursively.
+ *
+ * @param {String} dirPath
+ */
+makeDir: function (dirPath) {
+    var dirName = path.dirname(dirPath);
+
+    if (helpers.<span class="apidocCodeKeywordSpan">exists</span>(dirName)) {
+        fs.mkdirSync(dirPath);
+    } else {
+        fs.mkdirSync(dirName);
+        helpers.makeDir(dirPath);
+    }
+},
+...</pre></li>
+    </ul>
+
+
+
+    <h2>
+        <a href="#apidoc.element.git-hooks.fs_helpers.isExecutable" id="apidoc.element.git-hooks.fs_helpers.isExecutable">
+        function <span class="apidocSignatureSpan">git-hooks.fs_helpers.</span>isExecutable
+        <span class="apidocSignatureSpan">(path)</span>
+        </a>
+    </h2>
+    <ul>
+    <li>description and source-code<pre class="apidocCodePre">isExecutable = function (path) {
+    var stats = fs.lstatSync(path);
+    return (stats.mode &#x26; 1) ||
+        (stats.mode &#x26; 8) &#x26;&#x26; process.getgid &#x26;&#x26; stats.gid === process.getgid() ||
+        (stats.mode &#x26; 64) &#x26;&#x26; process.getuid &#x26;&#x26; stats.uid === process.getuid();
+}</pre></li>
+    <li>example usage<pre class="apidocCodePre">n/a</pre></li>
+    </ul>
+
+
+
+    <h2>
+        <a href="#apidoc.element.git-hooks.fs_helpers.makeDir" id="apidoc.element.git-hooks.fs_helpers.makeDir">
+        function <span class="apidocSignatureSpan">git-hooks.fs_helpers.</span>makeDir
+        <span class="apidocSignatureSpan">(dirPath)</span>
+        </a>
+    </h2>
+    <ul>
+    <li>description and source-code<pre class="apidocCodePre">makeDir = function (dirPath) {
+    var dirName = path.dirname(dirPath);
+
+    if (helpers.exists(dirName)) {
+        fs.mkdirSync(dirPath);
+    } else {
+        fs.mkdirSync(dirName);
+        helpers.makeDir(dirPath);
+    }
+}</pre></li>
+    <li>example usage<pre class="apidocCodePre">...
+makeDir: function (dirPath) {
+    var dirName = path.dirname(dirPath);
+
+    if (helpers.exists(dirName)) {
+        fs.mkdirSync(dirPath);
+    } else {
+        fs.mkdirSync(dirName);
+        helpers.<span class="apidocCodeKeywordSpan">makeDir</span>(dirPath);
+    }
+},
+
+/**
+ * Checks existence.
+ *
+ * @param {String} path
+...</pre></li>
+    </ul>
+
+
+
+    <h2>
+        <a href="#apidoc.element.git-hooks.fs_helpers.removeDir" id="apidoc.element.git-hooks.fs_helpers.removeDir">
+        function <span class="apidocSignatureSpan">git-hooks.fs_helpers.</span>removeDir
+        <span class="apidocSignatureSpan">(dirPath)</span>
+        </a>
+    </h2>
+    <ul>
+    <li>description and source-code<pre class="apidocCodePre">removeDir = function (dirPath) {
+    fs.readdirSync(dirPath).forEach(function (file) {
+        var fullPath = path.join(dirPath, file);
+        var isFile = fs.statSync(fullPath).isFile();
+        if (isFile) {
+            fs.unlinkSync(fullPath);
+        } else {
+            helpers.removeDir(fullPath);
+        }
+    });
+
+    fs.rmdirSync(dirPath);
+}</pre></li>
+    <li>example usage<pre class="apidocCodePre">...
+removeDir: function (dirPath) {
+    fs.readdirSync(dirPath).forEach(function (file) {
+        var fullPath = path.join(dirPath, file);
+        var isFile = fs.statSync(fullPath).isFile();
+        if (isFile) {
+            fs.unlinkSync(fullPath);
+        } else {
+            helpers.<span class="apidocCodeKeywordSpan">removeDir</span>(fullPath);
+        }
+    });
+
+    fs.rmdirSync(dirPath);
+},
+
+/**
+...</pre></li>
+    </ul>
+
+
+</div>
+
+<div class="apidocFooterDiv">
+    [ this document was created with
+    <a href="https://github.com/kaizhu256/node-utility2" target="_blank">utility2</a>
+    ]
+</div>
+</div>
